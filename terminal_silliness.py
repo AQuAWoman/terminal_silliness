@@ -9,7 +9,7 @@ import math
 import sys
 import requests  # For downloading images
 from PIL import Image  # For image loading
-from .kernels import Kernels
+from kernels import Kernels
 
 class ImageConvolution:
     def __init__(self):
