@@ -22,7 +22,7 @@ class ImageConvolution:
         self.char_tensor = torch.tensor([ord(c) for c in self.char_map.values()], dtype=torch.int32).to(self.device)
         self.kernel_map_tensor = torch.from_numpy(np.array([x[0] for x in self.kernels])).to(self.device)
 
-    def convolve_image(self, image_path, target_width=None):
+    def convolve_image(self, image_path, target_width=None, color_codes=None):
         print(f"Starting image convolution from: {image_path}")
         start_time = time.time()
 
@@ -43,7 +43,7 @@ class ImageConvolution:
         frame = np.array(img)
 
         # Get terminal width
-        if target_width is None:
+        if target_width is None or target_width == 0:
             width, height = os.get_terminal_size()
             target_width = width
 
@@ -62,22 +62,25 @@ class ImageConvolution:
 
         # Split the image into chunks
         reconstructed_string = ""
+        char_count = 0  # Track character count within each line
+
+        # Remove this line: char_count = 0  # Reset char_count for the next line
         for y in range(0, frame.shape[0], self.kernel_height):
             # Extract the chunk
             chunk = frame[y:y + self.kernel_height, :]
 
             # Convolve the chunk
-            chunk_string = self.convolve_chunk(chunk)
+            chunk_string, char_count = self.convolve_chunk(chunk, color_codes, char_count)
 
             # Append the chunk string to the reconstructed string
             reconstructed_string += chunk_string + "\n"
 
-        print(f"\033[1;92m{reconstructed_string}\033[0m")
+        print(reconstructed_string)
 
         end_time = time.time()
         print(f"Image convolution completed in {end_time - start_time:.4f} seconds.")
 
-    def convolve_chunk(self, chunk):
+    def convolve_chunk(self, chunk, color_codes, char_count):
         # Optimized block processing (GPU)
         input_img_tensor = torch.from_numpy(chunk).to(self.device)
         kernel_map_tensor = self.kernel_map_tensor.to(self.device)
@@ -96,14 +99,34 @@ class ImageConvolution:
         # Reconstruct string with GPU
         chunk_string = self.reconstruct_string_gpu(kernel_map, self.char_tensor)
 
-        return chunk_string
+        colored_chunk = ""
+        # Apply colors based on code combinations
+        if color_codes is not None:
+            for i, char in enumerate(chunk_string):
+                if char == "\n":
+                    continue  # Skip newlines for color counting
+                color_code_index = char_count % len(color_codes)
+                color_code_parts = color_codes[color_code_index].split("-")
 
-    def reconstruct_string_gpu(self,kernel_map_tensor, char_tensor):
-        device = kernel_map_tensor.device
-        reconstructed_string_tensor = char_tensor[kernel_map_tensor]
-        reconstructed_string_tensor = reconstructed_string_tensor.flatten()
-        reconstructed_string = ''.join(chr(i.item()) for i in reconstructed_string_tensor.cpu().numpy())
-        return reconstructed_string
+                # Build combined ANSI escape sequence
+                ansi_code = "\033["
+
+                # Handle both foreground and background colors
+                if len(color_code_parts) > 0: 
+                    if int(color_code_parts[0]) >= 0 and int(color_code_parts[0]) <= 15:
+                        ansi_code += f"3{int(color_code_parts[0])}"  # Foreground (0-15)
+                    if len(color_code_parts) > 1 and int(color_code_parts[1]) >= 0 and int(color_code_parts[1]) <= 15:
+                        ansi_code += f";4{int(color_code_parts[1])}"  # Background (0-15)
+                ansi_code += "m"  # Add 'm' at the end of the combined sequence
+
+                colored_chunk += ansi_code + char
+                char_count += 1
+
+        if color_codes is not None:
+            colored_chunk += "\033[0m"  # Reset color at the end of the line
+
+        # Return both chunk_string and char_count
+        return colored_chunk, char_count
 
     def download_image(self, url):
         """Downloads an image from a URL and saves it to a temporary file."""
@@ -121,16 +144,24 @@ class ImageConvolution:
             print(f"\033[1;91mError downloading image: {e}\033[0m")
             return None
 
+    def reconstruct_string_gpu(self, kernel_map, char_tensor):
+        device = kernel_map.device
+        reconstructed_string_tensor = char_tensor[kernel_map]
+        reconstructed_string_tensor = reconstructed_string_tensor.flatten()
+        reconstructed_string = ''.join(chr(i.item()) for i in reconstructed_string_tensor.cpu().numpy())
+        return reconstructed_string
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python image_convolution.py <image_path> [target_width]")
+        print("Usage: python image_convolution.py <image_path> [target_width] [color_codes...]")
         sys.exit(1)
 
     image_path = sys.argv[1]
     target_width = int(sys.argv[2]) if len(sys.argv) > 2 else None
+    color_codes = sys.argv[3:] if len(sys.argv) > 3 else None
 
     app = ImageConvolution()
-    app.convolve_image(image_path, target_width)
+    app.convolve_image(image_path, target_width, color_codes)
 
     # Clean up the temporary image file if downloaded
     if image_path.startswith("http"):
