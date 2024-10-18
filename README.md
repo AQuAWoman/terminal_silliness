@@ -27,4 +27,4 @@ Installation:
 
 Usage:
 
-`$ python3 terminal_silliness.py \<image path or url> [target width (characters)]`
+`$ python3 terminal_silliness.py <image path or url> [target width (characters)]`
