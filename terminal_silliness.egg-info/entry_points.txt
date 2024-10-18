@@ -1,3 +1,0 @@
-[console_scripts]
-image_convolution = image_convolution.image_convolution:main
-

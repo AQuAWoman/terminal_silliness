@@ -1,8 +1,0 @@
-README.md
-setup.py
-terminal_silliness.egg-info/PKG-INFO
-terminal_silliness.egg-info/SOURCES.txt
-terminal_silliness.egg-info/dependency_links.txt
-terminal_silliness.egg-info/entry_points.txt
-terminal_silliness.egg-info/requires.txt
-terminal_silliness.egg-info/top_level.txt
