@@ -4,4 +4,4 @@ Just a simple image convolution utility to create text-based art. Probably overd
 
 Usage:
 
-terminal_silliness <image path or url> [target width (characters)]
+terminal_silliness \<image path or url> [target width (characters)]
