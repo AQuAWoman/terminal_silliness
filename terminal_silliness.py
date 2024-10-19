@@ -143,9 +143,15 @@ class ImageConvolution:
 
                 # Apply the colors to the ANSI code if they were set
                 if foreground_color is not None:
-                    ansi_code += f"3{foreground_color}"  # Foreground (0-15)
+                    if foreground_color >= 8 and foreground_color <= 15:
+                        ansi_code += f"9{foreground_color - 8}"  # High-intensity foreground
+                    else:
+                        ansi_code += f"3{foreground_color}"  # Foreground (0-7)
                 if background_color is not None:
-                    ansi_code += f";4{background_color}"  # Background (0-15)
+                    if background_color >= 8 and background_color <= 15:
+                        ansi_code += f";10{background_color - 8}"  # High-intensity background
+                    else:
+                        ansi_code += f";4{background_color}"  # Background (0-7)
 
                 ansi_code += "m"  # Add 'm' at the end of the combined sequence
 
