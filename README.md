@@ -27,6 +27,6 @@ Installation:
 
 Usage:
 
-`$ python3 terminal_silliness.py \<image path or url> [target width (characters)] [FG[-BG][-I][-B][-N]], ...`
+`$ python3 terminal_silliness.py \<image path or url> [target width (characters, 0 for automatic fit to terminal width)] [FG[-BG][-I][-B][-N]], ...`
 
 FG and BG are numbers, I, B, and N denote italics, bold, and negation respectively.
