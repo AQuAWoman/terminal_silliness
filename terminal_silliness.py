@@ -111,19 +111,50 @@ class ImageConvolution:
                 # Build combined ANSI escape sequence
                 ansi_code = "\033["
 
-                # Handle both foreground and background colors
-                if len(color_code_parts) > 0: 
-                    if int(color_code_parts[0]) >= 0 and int(color_code_parts[0]) <= 15:
-                        ansi_code += f"3{int(color_code_parts[0])}"  # Foreground (0-15)
-                    if len(color_code_parts) > 1 and int(color_code_parts[1]) >= 0 and int(color_code_parts[1]) <= 15:
-                        ansi_code += f";4{int(color_code_parts[1])}"  # Background (0-15)
+                # Initialize variables for foreground and background colors
+                foreground_color = None
+                background_color = None
+
+                # Process color code parts
+                for j, part in enumerate(color_code_parts):
+                    if part.isdigit() and foreground_color is None:
+                        foreground_color = int(part)
+                        if foreground_color < 0 or foreground_color > 15:
+                            raise ValueError(f"Invalid foreground color: {foreground_color}")
+                    elif part.isdigit() and background_color is None:
+                        background_color = int(part)
+                        if background_color < 0 or background_color > 15:
+                            raise ValueError(f"Invalid background color: {background_color}")
+                    elif part.isdigit() and (foreground_color is not None or background_color is not None):
+                        raise ValueError(f"Invalid color code: {color_codes[color_code_index]} - Extra number found after color codes")
+                    elif part in ["I", "B", "N"]:
+                        if foreground_color is None:
+                            foreground_color = 39 # Default foreground (white)
+                        if background_color is None:
+                            background_color = 49 # Default background (black)
+                        if part == "I":
+                            ansi_code += ";3"  # Italic
+                        elif part == "B":
+                            ansi_code += ";1"  # Bold
+                        elif part == "N":
+                            ansi_code += ";7"  # Invert
+                    elif part.isdigit():
+                        raise ValueError(f"Invalid color code: {color_codes[color_code_index]} - Numbers after style codes are not allowed.")
+
+                # Apply the colors to the ANSI code if they were set
+                if foreground_color is not None:
+                    ansi_code += f"3{foreground_color}"  # Foreground (0-15)
+                if background_color is not None:
+                    ansi_code += f";4{background_color}"  # Background (0-15)
+
                 ansi_code += "m"  # Add 'm' at the end of the combined sequence
 
-                colored_chunk += ansi_code + char
+                colored_chunk += ansi_code + char + "\033[0m"  # Add the character and reset color
                 char_count += 1
 
-        if color_codes is not None:
-            colored_chunk += "\033[0m"  # Reset color at the end of the line
+        # No need to reset color here as it's already done after each character
+        # if color_codes is not None:
+        #    colored_chunk += "\033[0m"  # Reset color at the end of the line
 
         # Return both chunk_string and char_count
         return colored_chunk, char_count
